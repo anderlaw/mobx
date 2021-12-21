@@ -6,13 +6,16 @@ export const getDescriptor = Object.getOwnPropertyDescriptor
 export const defineProperty = Object.defineProperty
 export const objectPrototype = Object.prototype
 
+//空对象、数组（冻结）
 export const EMPTY_ARRAY = []
 Object.freeze(EMPTY_ARRAY)
 
 export const EMPTY_OBJECT = {}
 Object.freeze(EMPTY_OBJECT)
 
+//Lambda接口：name和匿名函数
 export interface Lambda {
+    //函数签名写法
     (): void
     name?: string
 }
@@ -30,6 +33,10 @@ export function assertProxies() {
     }
 }
 
+/**
+ * 根据`配置的代理检查`直接抛出异常
+ * 不负责异常的判定
+ */
 export function warnAboutProxyRequirement(msg: string) {
     if (__DEV__ && globalState.verifyProxies) {
         die(
@@ -65,6 +72,13 @@ export function isString(value: any): value is string {
     return typeof value === "string"
 }
 
+/**
+ * 是否是字符化的？
+ * 1。字符串
+ * 2。数字
+ * 3。符号
+ * 都是字符化的
+ */
 export function isStringish(value: any): value is string | number | symbol {
     const t = typeof value
     switch (t) {
@@ -80,6 +94,11 @@ export function isObject(value: any): value is Object {
     return value !== null && typeof value === "object"
 }
 
+/**
+ * 是否是纯对象：
+ * 1。原型为空
+ * 2。原型是Object的实例。
+ */
 export function isPlainObject(value) {
     if (!isObject(value)) return false
     const proto = Object.getPrototypeOf(value)
@@ -87,6 +106,7 @@ export function isPlainObject(value) {
     return proto.constructor?.toString() === plainObjectString
 }
 
+//检测一个对象是否是构造函数：generator
 // https://stackoverflow.com/a/37865170
 export function isGenerator(obj: any): boolean {
     const constructor = obj?.constructor
@@ -96,6 +116,10 @@ export function isGenerator(obj: any): boolean {
     return false
 }
 
+/**
+ * 添加无法枚举的属性
+ * 利用Object.defineProperty（隐形）
+ */
 export function addHiddenProp(object: any, propName: PropertyKey, value: any) {
     defineProperty(object, propName, {
         enumerable: false,
@@ -105,6 +129,10 @@ export function addHiddenProp(object: any, propName: PropertyKey, value: any) {
     })
 }
 
+/**
+ * 添加无法枚举、无法修改（静态）的属性
+ * 利用Object.defineProperty
+ */
 export function addHiddenFinalProp(object: any, propName: PropertyKey, value: any) {
     defineProperty(object, propName, {
         enumerable: false,
@@ -114,8 +142,14 @@ export function addHiddenFinalProp(object: any, propName: PropertyKey, value: an
     })
 }
 
+/**
+ * 创建instanceof推断
+ * 没有直接通过 instanceof
+ * 而是通过标记原型属性，再判断对象是否可以访问原型上的标记属性：yes表示对象是实例，否则不是
+ */
 export function createInstanceofPredicate<T>(
     name: string,
+    //构造签名
     theClass: new (...args: any[]) => T
 ): (x: any) => x is T {
     const propName = "isMobX" + name
@@ -133,10 +167,13 @@ export function isES6Set(thing): thing is Set<any> {
     return thing instanceof Set
 }
 
+//记录
 const hasGetOwnPropertySymbols = typeof Object.getOwnPropertySymbols !== "undefined"
 
 /**
+ * 返回普通对象所有的key，只含可枚举的部分
  * Returns the following: own enumerable keys and symbols.
+ * Object.keys返回 给定对象的自身可枚举属性组成的数组(不含Symbol属性)
  */
 export function getPlainObjectKeys(object) {
     const keys = Object.keys(object)
@@ -144,11 +181,15 @@ export function getPlainObjectKeys(object) {
     if (!hasGetOwnPropertySymbols) return keys
     const symbols = Object.getOwnPropertySymbols(object)
     if (!symbols.length) return keys
+    //只取那些可被枚举的属性
     return [...keys, ...symbols.filter(s => objectPrototype.propertyIsEnumerable.call(object, s))]
 }
 
-// From Immer utils
-// Returns all own keys, including non-enumerable and symbolic
+/**
+ * 返回对象自身所有的属性，包含不可枚举的部分以及符号
+ * 1。Object.getOwnPropertyNames:返回自身属性名数组（含不可枚举属性，不含Symbol属性）。
+ * 2。Object.getOwnPropertySymbols:返回自身符号属性名数组（含不可枚举属性）
+ */
 export const ownKeys: (target: any) => PropertyKey[] =
     typeof Reflect !== "undefined" && Reflect.ownKeys
         ? Reflect.ownKeys
@@ -156,20 +197,26 @@ export const ownKeys: (target: any) => PropertyKey[] =
         ? obj => Object.getOwnPropertyNames(obj).concat(Object.getOwnPropertySymbols(obj) as any)
         : /* istanbul ignore next */ Object.getOwnPropertyNames
 
+//对字符串和符号类型的直接返回或者调用toString
 export function stringifyKey(key: any): string {
     if (typeof key === "string") return key
     if (typeof key === "symbol") return key.toString()
     return new String(key).toString()
 }
 
+//借助 null+typeof 来将数据转换为原始类型
 export function toPrimitive(value) {
     return value === null ? null : typeof value === "object" ? "" + value : value
 }
 
+/**
+ * 判断对象自身是否拥有某个属性
+ */
 export function hasProp(target: Object, prop: PropertyKey): boolean {
     return objectPrototype.hasOwnProperty.call(target, prop)
 }
 
+//***IE9 支持 Object.getOwnPropertyDescriptor,IE全系不支持Object.getOwnPropertyDescriptors
 // From Immer utils
 export const getOwnPropertyDescriptors =
     Object.getOwnPropertyDescriptors ||
