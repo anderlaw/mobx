@@ -65,6 +65,7 @@ export class Atom implements IAtom {
      */
     public reportChanged() {
         startBatch()
+        //tong
         propagateChanged(this)
         endBatch()
     }
@@ -76,6 +77,10 @@ export class Atom implements IAtom {
 
 export const isAtom = createInstanceofPredicate("Atom", Atom)
 
+/**
+ * 创建原子
+ * 往原子实例里添加两个handler并返回该原子
+ */
 export function createAtom(
     name: string,
     onBecomeObservedHandler: () => void = noop,
@@ -84,10 +89,13 @@ export function createAtom(
     const atom = new Atom(name)
     // default `noop` listener will not initialize the hook Set
     if (onBecomeObservedHandler !== noop) {
+        //means: atom.onBOL!.add(onBecomeObservedHandler);
         onBecomeObserved(atom, onBecomeObservedHandler)
     }
 
     if (onBecomeUnobservedHandler !== noop) {
+        //means: atom.onBUOL!.add(onBecomeUnobservedHandler);
+
         onBecomeUnobserved(atom, onBecomeUnobservedHandler)
     }
     return atom

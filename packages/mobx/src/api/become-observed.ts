@@ -57,12 +57,14 @@ function interceptHook(hook: "onBO" | "onBUO", thing, arg2, arg3) {
     const cb = isFunction(arg3) ? arg3 : arg2
     const listenersKey = `${hook}L` as "onBOL" | "onBUOL"
 
+    //向相应的hook list里添加cb
     if (atom[listenersKey]) {
         atom[listenersKey]!.add(cb)
     } else {
         atom[listenersKey] = new Set<Lambda>([cb])
     }
 
+    //返回一个匿名函数（用于从hook list里删除cb）
     return function () {
         const hookListeners = atom[listenersKey]
         if (hookListeners) {

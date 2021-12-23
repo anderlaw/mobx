@@ -11,33 +11,47 @@ import {
     checkIfStateReadsAreAllowed
 } from "../internal"
 
+//依赖树节点的接口
 export interface IDepTreeNode {
     name_: string
+    //TODO:正在观察的列表,观察其他节点？？
     observing_?: IObservable[]
 }
-
 export interface IObservable extends IDepTreeNode {
+    //TODO:explain
     diffValue_: number
     /**
      * Id of the derivation *run* that last accessed this observable.
      * If this id equals the *run* id of the current derivation,
      * the dependency is already established
      */
+    //被上次访问的derivation的id
     lastAccessedBy_: number
+    //是否被观察？
     isBeingObserved_: boolean
 
     lowestObserverState_: IDerivationState_ // Used to avoid redundant propagations
+    //是否是被标记待办的未观察项
     isPendingUnobservation_: boolean // Used to push itself to global.pendingUnobservations at most once per batch.
 
+    //观察者列表：derivation list
     observers_: Set<IDerivation>
 
+    //stands for onBecomeUnObserved:被取消观察了
     onBUO(): void
+    //stands for onBecomeObserved：被观察了
     onBO(): void
 
+    //取消观察列表：存放的是函数
     onBUOL: Set<Lambda> | undefined
+    //观察列表：存放的是函数
     onBOL: Set<Lambda> | undefined
 }
 
+/**
+ * observable对象是否有观察者
+ * observers_属性不为空
+ */
 export function hasObservers(observable: IObservable): boolean {
     return observable.observers_ && observable.observers_.size > 0
 }
@@ -69,6 +83,7 @@ export function addObserver(observable: IObservable, node: IDerivation) {
     // invariantObservers(observable);
 
     observable.observers_.add(node)
+    //TODO:why we need this?
     if (observable.lowestObserverState_ > node.dependenciesState_)
         observable.lowestObserverState_ = node.dependenciesState_
 
@@ -89,6 +104,12 @@ export function removeObserver(observable: IObservable, node: IDerivation) {
     // invariant(observable._observers.indexOf(node) === -1, "INTERNAL ERROR remove already removed node2");
 }
 
+/**
+ * 排队等待
+ * 将observable对象的 `isPendingUnobservation_`设为true，
+ * 并添加到全局的pendingUnobservations列表里
+ * @param observable
+ */
 export function queueForUnobservation(observable: IObservable) {
     if (observable.isPendingUnobservation_ === false) {
         // invariant(observable._observers.length === 0, "INTERNAL ERROR, should only queue for unobservation unobserved observables");
@@ -103,16 +124,20 @@ export function queueForUnobservation(observable: IObservable) {
  * Avoids unnecessary recalculations.
  */
 export function startBatch() {
+    //全局在批状态累加
     globalState.inBatch++
 }
 
 export function endBatch() {
+    //全局在批状态减1
     if (--globalState.inBatch === 0) {
         runReactions()
         // the batch is actually about to finish, all unobserving should happen here.
+        //处理unobserving 列表
         const list = globalState.pendingUnobservations
         for (let i = 0; i < list.length; i++) {
             const observable = list[i]
+            //重置isPendingUnobservation_ 状态
             observable.isPendingUnobservation_ = false
             if (observable.observers_.size === 0) {
                 if (observable.isBeingObserved_) {
@@ -121,6 +146,9 @@ export function endBatch() {
                     observable.onBUO()
                 }
                 if (observable instanceof ComputedValue) {
+                    /**
+                     * 计算属性自动暂停
+                     */
                     // computed values are automatically teared down when the last observer leaves
                     // this process happens recursively, this computed might be the last observabe of another, etc..
                     observable.suspend_()
@@ -131,7 +159,13 @@ export function endBatch() {
     }
 }
 
+/**
+ * 向Mobx通知被观察,修改derivation的newObserving_列表
+ * 修改observable的 lastAccessedBy_, isBeingObserved_, 调用 observable.onBO()
+ * @param observable
+ */
 export function reportObserved(observable: IObservable): boolean {
+    //判定全局的globalState并给出 warning，不会中断代码执行
     checkIfStateReadsAreAllowed(observable)
 
     const derivation = globalState.trackingDerivation
@@ -188,6 +222,7 @@ export function propagateChanged(observable: IObservable) {
 
     // Ideally we use for..of here, but the downcompiled version is really slow...
     observable.observers_.forEach(d => {
+        //依赖状态为最新的
         if (d.dependenciesState_ === IDerivationState_.UP_TO_DATE_) {
             if (__DEV__ && d.isTracing_ !== TraceMode.NONE) {
                 logTraceInfo(d, observable)

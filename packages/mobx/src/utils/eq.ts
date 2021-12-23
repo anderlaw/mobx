@@ -30,6 +30,11 @@ function eq(a: any, b: any, depth: number, aStack?: any[], bStack?: any[]) {
     const type = typeof a
     if (!isFunction(type) && type !== "object" && typeof b != "object") return false
 
+    /**
+     * 自定义的比较：
+     * 1。className比较:Object.prototype.toString
+     * 2。
+     */
     // Compare `[[Class]]` names.
     const className = toString.call(a)
     if (className !== toString.call(b)) return false
@@ -42,6 +47,7 @@ function eq(a: any, b: any, depth: number, aStack?: any[], bStack?: any[]) {
             // equivalent to `new String("5")`.
             return "" + a === "" + b
         case "[object Number]":
+            //比较包装对象
             // `NaN`s are equivalent, but non-reflexive.
             // Object(NaN) is equivalent to NaN.
             if (+a !== +a) return +b !== +b

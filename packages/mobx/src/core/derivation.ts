@@ -39,8 +39,14 @@ export enum TraceMode {
  * See https://medium.com/@mweststrate/becoming-fully-reactive-an-in-depth-explanation-of-mobservable-55995262a254#.xvbh6qd74
  */
 export interface IDerivation extends IDepTreeNode {
+    //正在观察的状态列表
     observing_: IObservable[]
+    /***
+     * `observable.ts: reportObserved`
+     * line 177:derivation.newObserving_![derivation.unboundDepsCount_++] = observable
+     */
     newObserving_: null | IObservable[]
+    //所有依赖的状态
     dependenciesState_: IDerivationState_
     /**
      * Id of the current run of a derivation. Each time the derivation is tracked
@@ -48,9 +54,11 @@ export interface IDerivation extends IDepTreeNode {
      */
     runId_: number
     /**
+     * TODO:what does bound mean in Mobx????
      * amount of dependencies used by the derivation in this run, which has not been bound yet.
      */
     unboundDepsCount_: number
+    //TODO?数据过期，需要更新? 做更新？还是 善后？
     onBecomeStale_(): void
     isTracing_: TraceMode
 
@@ -60,6 +68,11 @@ export interface IDerivation extends IDepTreeNode {
     requiresObservable_?: boolean
 }
 
+/**
+ * 封装了一个用于捕获异常的类，有一个cause的成员
+ * let ins = new CaughtException(e);
+ * console.log(ins.cause)
+ */
 export class CaughtException {
     constructor(public cause: any) {
         // Empty

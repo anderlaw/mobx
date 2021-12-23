@@ -4,6 +4,9 @@ import { IObjectDidChange } from "./../types/observableobject"
 import { IArrayDidChange } from "./../types/observablearray"
 import { Lambda, globalState, once, ISetDidChange, IMapDidChange } from "../internal"
 
+/**
+ * 检查间谍是否被启用
+ */
 export function isSpyEnabled() {
     return __DEV__ && !!globalState.spyListeners.length
 }
@@ -24,6 +27,9 @@ export type PureSpyEvent =
 
 type SpyEvent = PureSpyEvent & { spyReportStart?: true }
 
+/**
+ * 间谍上报：取出globalState.spyListeners ,遍历并依次执行
+ */
 export function spyReport(event: SpyEvent) {
     if (!__DEV__) return // dead code elimination can do the rest
     if (!globalState.spyListeners.length) return
@@ -31,6 +37,10 @@ export function spyReport(event: SpyEvent) {
     for (let i = 0, l = listeners.length; i < l; i++) listeners[i](event)
 }
 
+/**
+ * 开始间谍上报
+ * @param event
+ */
 export function spyReportStart(event: PureSpyEvent) {
     if (!__DEV__) return
     const change = { ...event, spyReportStart: true as const }
@@ -39,6 +49,10 @@ export function spyReportStart(event: PureSpyEvent) {
 
 const END_EVENT: SpyEvent = { type: "report-end", spyReportEnd: true }
 
+/**
+ * 结束间谍上报
+ * @param event
+ */
 export function spyReportEnd(change?: { time?: number }) {
     if (!__DEV__) return
     if (change) spyReport({ ...change, type: "report-end", spyReportEnd: true })
@@ -52,6 +66,7 @@ export function spy(listener: (change: SpyEvent) => void): Lambda {
     } else {
         globalState.spyListeners.push(listener)
         return once(() => {
+            //只保留唯一的listener
             globalState.spyListeners = globalState.spyListeners.filter(l => l !== listener)
         })
     }

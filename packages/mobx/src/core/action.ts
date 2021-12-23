@@ -25,12 +25,18 @@ const isFunctionNameConfigurable = getDescriptor(() => {}, "name")?.configurable
 
 // we can safely recycle this object
 const tmpNameDescriptor: PropertyDescriptor = {
+    //可修改部分
     value: "action",
+    //固定部分：
     configurable: true,
     writable: false,
     enumerable: false
 }
 
+/**
+ * 创建一个行动：
+ * 返回一个调用 `executeAction`的函数而已
+ */
 export function createAction(
     actionName: string,
     fn: Function,
@@ -62,6 +68,7 @@ export function executeAction(
 ) {
     const runInfo = _startAction(actionName, canRunAsDerivation, scope, args)
     try {
+        //调用fn
         return fn.apply(scope, args)
     } catch (err) {
         runInfo.error_ = err

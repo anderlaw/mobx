@@ -37,11 +37,13 @@ export class MobXGlobals {
     UNCHANGED: IUNCHANGED = {}
 
     /**
+     * 跟踪的 derivation
      * Currently running derivation
      */
     trackingDerivation: IDerivation | null = null
 
     /**
+     * 跟踪的上下文
      * Currently running reaction. This determines if we currently have a reactive context.
      * (Tracking derivation is also set for temporal tracking of computed values inside actions,
      * but trackingReaction can only be set by a form of Reaction)
@@ -59,6 +61,7 @@ export class MobXGlobals {
     mobxGuid = 0
 
     /**
+     * 批处理 的数量
      * Are we in a batch block? (and how many of them)
      */
     inBatch: number = 0
@@ -121,12 +124,14 @@ export class MobXGlobals {
     reactionRequiresObservable = false
 
     /**
+     * 实验特性：
      * (Experimental)
      * Warn if observables are accessed outside a reactive context
      */
     observableRequiresReaction = false
 
     /*
+     * 禁用错误边界
      * Don't catch and rethrow exceptions. This is useful for inspecting the state of
      * the stack when an exception occurs while debugging.
      */
@@ -140,6 +145,7 @@ export class MobXGlobals {
 
     useProxies = true
     /*
+     * 是否核验 proxy
      * print warnings about code that would fail if proxies weren't available
      */
     verifyProxies = false
