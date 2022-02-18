@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Title</title>
+    </head>
+    <body>
+        <button>累加</button>
+        <script src="../../dist/mobx.umd.development.js"></script>
+        <script>
+            class Count {
+                value = 0
+                constructor() {
+                    mobx.makeObservable(this, {
+                        value: mobx.observable,
+                        increment: mobx.action
+                    })
+                    mobx.autorun(() => console.log(this.value))
+                }
+                increment() {
+                    this.value++
+                }
+            }
+            const count = new Count()
+            document.querySelector("button").onclick = () => {
+                count.increment()
+            }
+        </script>
+    </body>
+</html>
