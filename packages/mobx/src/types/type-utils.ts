@@ -55,7 +55,7 @@ export function getAdministration(thing: any, property?: string) {
     if (thing[$mobx]) return thing[$mobx]
     die(24, thing)
 }
-
+//取出对象（thing）的名字
 export function getDebugName(thing: any, property?: string): string {
     let named
     if (property !== undefined) {

@@ -12,6 +12,7 @@ Object.freeze(EMPTY_ARRAY)
 export const EMPTY_OBJECT = {}
 Object.freeze(EMPTY_OBJECT)
 
+//function's Call signature(函数调用签名) 表示一个没有参数和返回值的匿名（或具名）函数
 export interface Lambda {
     (): void
     name?: string

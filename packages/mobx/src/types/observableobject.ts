@@ -607,6 +607,7 @@ export class ObservableObjectAdministration
     }
 }
 
+//IIsObservableObject
 export interface IIsObservableObject {
     $mobx: ObservableObjectAdministration
 }
@@ -641,6 +642,7 @@ export function asObservableObject(
               }@${getNextId()}`
             : "ObservableObject")
 
+    //创建一个可观察对象的管理站并作为 $mobx 添加到target
     const adm = new ObservableObjectAdministration(
         target,
         new Map(),

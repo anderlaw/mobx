@@ -1,8 +1,10 @@
+//declare some global const here instead of `global.d.ts`
 declare const window: any
 declare const self: any
 
 const mockGlobal = {}
 
+//条件判断返回全局对象
 export function getGlobal() {
     if (typeof globalThis !== "undefined") {
         return globalThis

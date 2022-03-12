@@ -6,9 +6,9 @@ const { basename } = require("path")
 
 const stdio = ["ignore", "inherit", "pipe"]
 const opts = { stdio }
-
+//Destructuring assignment:解构赋值
 const {
-    _: [packageName],
+    _: [packageName], //取出第一个右侧对象中`_`属性中的第一项命名为 packageName
     target
 } = minimist(process.argv.slice(2))
 

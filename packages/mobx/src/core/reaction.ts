@@ -39,12 +39,11 @@ import {
  * 5) `onInvalidate` will be called, and we are back at step 1.
  *
  */
-
 export interface IReactionPublic {
-    dispose(): void
-    trace(enterBreakPoint?: boolean): void
+    dispose(): void //处置
+    trace(enterBreakPoint?: boolean): void //跟踪
 }
-
+//函数调用签名 invoke signature
 export interface IReactionDisposer {
     (): void
     $mobx: Reaction
@@ -57,8 +56,10 @@ export class Reaction implements IDerivation, IReactionPublic {
     diffValue_ = 0
     runId_ = 0
     unboundDepsCount_ = 0
+    //处置、安排的状态
     isDisposed_ = false
     isScheduled_ = false
+    //跟踪、运行、
     isTrackPending_ = false
     isRunning_ = false
     isTracing_: TraceMode = TraceMode.NONE
@@ -78,6 +79,7 @@ export class Reaction implements IDerivation, IReactionPublic {
         if (!this.isScheduled_) {
             this.isScheduled_ = true
             globalState.pendingReactions.push(this)
+            //统一了运行的方法：runReactions 而不是单独调用`runReaction_`
             runReactions()
         }
     }
@@ -92,6 +94,7 @@ export class Reaction implements IDerivation, IReactionPublic {
     runReaction_() {
         if (!this.isDisposed_) {
             startBatch()
+            //还原isScheduled_ 属性
             this.isScheduled_ = false
             const prev = globalState.trackingContext
             globalState.trackingContext = this
@@ -131,6 +134,7 @@ export class Reaction implements IDerivation, IReactionPublic {
                 type: "reaction"
             })
         }
+        //记录运行
         this.isRunning_ = true
         const prevReaction = globalState.trackingContext // reactions could create reactions...
         globalState.trackingContext = this
@@ -190,13 +194,13 @@ export class Reaction implements IDerivation, IReactionPublic {
             }
         }
     }
-
+    //用bind包装一层，加上类型后和`$mobx`属性后返回
     getDisposer_(): IReactionDisposer {
         const r = this.dispose.bind(this) as IReactionDisposer
         r[$mobx] = this
         return r
     }
-
+    //拿到名字信息
     toString() {
         return `Reaction[${this.name_}]`
     }
@@ -229,7 +233,9 @@ export function runReactions() {
     reactionScheduler(runReactionsHelper)
 }
 
+//运行 reaction的帮助函数
 function runReactionsHelper() {
+    //记录运行状态
     globalState.isRunningReactions = true
     const allReactions = globalState.pendingReactions
     let iterations = 0
@@ -238,6 +244,7 @@ function runReactionsHelper() {
     // Hence we work with two variables and check whether
     // we converge to no remaining reactions after a while.
     while (allReactions.length > 0) {
+        //设定最大的迭代数量：100
         if (++iterations === MAX_REACTION_ITERATIONS) {
             console.error(
                 __DEV__
@@ -247,6 +254,7 @@ function runReactionsHelper() {
             )
             allReactions.splice(0) // clear reactions
         }
+        //取出所有的 reactions，分别迭代并执行它们
         let remainingReactions = allReactions.splice(0)
         for (let i = 0, l = remainingReactions.length; i < l; i++)
             remainingReactions[i].runReaction_()

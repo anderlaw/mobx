@@ -39,8 +39,11 @@ export enum TraceMode {
  * See https://medium.com/@mweststrate/becoming-fully-reactive-an-in-depth-explanation-of-mobservable-55995262a254#.xvbh6qd74
  */
 export interface IDerivation extends IDepTreeNode {
+    //正在观察
     observing_: IObservable[]
+    //新的观察
     newObserving_: null | IObservable[]
+    //依赖的状态
     dependenciesState_: IDerivationState_
     /**
      * Id of the current run of a derivation. Each time the derivation is tracked
@@ -51,6 +54,7 @@ export interface IDerivation extends IDepTreeNode {
      * amount of dependencies used by the derivation in this run, which has not been bound yet.
      */
     unboundDepsCount_: number
+    //发生变化后需要调用的钩子
     onBecomeStale_(): void
     isTracing_: TraceMode
 
@@ -266,7 +270,8 @@ function bindDependencies(derivation: IDerivation) {
         derivation.onBecomeStale_()
     }
 }
-
+//清除观察者的 `observing_`列表，并对列表里的observable依次执行移除观察者行为：
+//removeObserver(observable,observer)
 export function clearObserving(derivation: IDerivation) {
     // invariant(globalState.inBatch > 0, "INTERNAL ERROR clearObserving should be called only inside batch");
     const obs = derivation.observing_

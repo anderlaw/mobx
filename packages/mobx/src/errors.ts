@@ -73,16 +73,19 @@ const niceErrors = {
     },
     38: "'ownKeys()' can only be used on observable objects",
     39: "'defineProperty()' can only be used on observable objects"
-} as const
+} as const // const assertions --> no literal types in that expression should be widened
 
+//env divided  错误对象 仅在开发环境
 const errors: typeof niceErrors = __DEV__ ? niceErrors : ({} as any)
 
+//函数可以throw自定义文字描述的异常，也可以throw Mobx内建的异常
 export function die(error: string | keyof typeof errors, ...args: any[]): never {
     if (__DEV__) {
         let e: any = typeof error === "string" ? error : errors[error]
         if (typeof e === "function") e = e.apply(null, args as any)
         throw new Error(`[MobX] ${e}`)
     }
+    //生产异常
     throw new Error(
         typeof error === "number"
             ? `[MobX] minified error nr: ${error}${

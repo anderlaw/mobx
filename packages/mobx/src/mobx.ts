@@ -17,6 +17,8 @@
  */
 import { die } from "./errors"
 import { getGlobal } from "./utils/global"
+
+//key features detection: Symbol、Map、Set
 ;["Symbol", "Map", "Set"].forEach(m => {
     let g = getGlobal()
     if (typeof g[m] === "undefined") {

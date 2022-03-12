@@ -10,12 +10,16 @@ import {
     runReactions,
     checkIfStateReadsAreAllowed
 } from "../internal"
-
+/**
+ * 依赖树节点接口
+ * 1.要有_name
+ * 2.观察列表: observing_
+ */
 export interface IDepTreeNode {
     name_: string
     observing_?: IObservable[]
 }
-
+//可观察对象
 export interface IObservable extends IDepTreeNode {
     diffValue_: number
     /**
@@ -26,6 +30,7 @@ export interface IObservable extends IDepTreeNode {
     lastAccessedBy_: number
     isBeingObserved_: boolean
 
+    //避免无谓的传播
     lowestObserverState_: IDerivationState_ // Used to avoid redundant propagations
     isPendingUnobservation_: boolean // Used to push itself to global.pendingUnobservations at most once per batch.
 
@@ -69,6 +74,7 @@ export function addObserver(observable: IObservable, node: IDerivation) {
     // invariantObservers(observable);
 
     observable.observers_.add(node)
+    //取最低的
     if (observable.lowestObserverState_ > node.dependenciesState_)
         observable.lowestObserverState_ = node.dependenciesState_
 
@@ -81,6 +87,7 @@ export function removeObserver(observable: IObservable, node: IDerivation) {
     // invariant(observable._observers.indexOf(node) !== -1, "INTERNAL ERROR remove already removed node");
     // invariantObservers(observable);
     observable.observers_.delete(node)
+    //当可观察对象的观察者为空时，队列处理观察解除（UnObservation）
     if (observable.observers_.size === 0) {
         // deleting last observer
         queueForUnobservation(observable)
@@ -106,18 +113,27 @@ export function startBatch() {
     globalState.inBatch++
 }
 
+/**
+ * 结束事物：
+ * 1. 运行 global中的pendingReactions
+ * 2. 重置global中的pendingUnobservations的属性状态：isPendingUnobservation_、isBeingObserved_,触发onBUO
+ */
 export function endBatch() {
     if (--globalState.inBatch === 0) {
+        //取出所有global.pendingReactions 并执行每个项目中的`runReaction_`
         runReactions()
         // the batch is actually about to finish, all unobserving should happen here.
         const list = globalState.pendingUnobservations
         for (let i = 0; i < list.length; i++) {
             const observable = list[i]
             observable.isPendingUnobservation_ = false
+
+            //仅当观察者列表为空时
             if (observable.observers_.size === 0) {
                 if (observable.isBeingObserved_) {
                     // if this observable had reactive observers, trigger the hooks
                     observable.isBeingObserved_ = false
+                    //触发`变为不可观察对象`钩子
                     observable.onBUO()
                 }
                 if (observable instanceof ComputedValue) {
@@ -131,9 +147,15 @@ export function endBatch() {
     }
 }
 
+/**
+ * 报告（收集）：
+ * 1. 观察者收集observable，记录观察者的runId到observable上
+ * 2. 累加观察者的 unboundDepsCount、添加observable到 观察者的newObserving_列表里
+ * 3. 触发observable的 onBO钩子
+ */
 export function reportObserved(observable: IObservable): boolean {
     checkIfStateReadsAreAllowed(observable)
-
+    //取出 当前正在追踪的derivation(观察者)
     const derivation = globalState.trackingDerivation
     if (derivation !== null) {
         /**
@@ -144,6 +166,7 @@ export function reportObserved(observable: IObservable): boolean {
         if (derivation.runId_ !== observable.lastAccessedBy_) {
             observable.lastAccessedBy_ = derivation.runId_
             // Tried storing newObserving, or observing, or both as Set, but performance didn't come close...
+            //把observable添加到 derivation的newObserving数组里（累加unboundDepsCount_属性）
             derivation.newObserving_![derivation.unboundDepsCount_++] = observable
             if (!observable.isBeingObserved_ && globalState.trackingContext) {
                 observable.isBeingObserved_ = true
@@ -180,14 +203,24 @@ export function reportObserved(observable: IObservable): boolean {
  * Also most basic use cases should be ok
  */
 
+/**
+ * 传播变化：observable变更触发 观察者执行
+ * 1. 防抖
+ * 2. 只有d.dependenciesState_ 为 up_to_date的才触发 d.onBecomeStale_()
+ * 3. 统一将d.dependenciesState_ 改为 _stale
+ * 猜测，这里是防抖处理，一定有个地方会重置d.dependenciesState_ 的。
+ */
 // Called by Atom when its value changes
+//修改两个地方： lowestObserverState_、 observers_ 每一项的dependenciesState_ 为 stale
 export function propagateChanged(observable: IObservable) {
     // invariantLOS(observable, "changed start");
+    //这里的lowestObserverState_ 是个开关，防止重复执行
     if (observable.lowestObserverState_ === IDerivationState_.STALE_) return
     observable.lowestObserverState_ = IDerivationState_.STALE_
 
     // Ideally we use for..of here, but the downcompiled version is really slow...
     observable.observers_.forEach(d => {
+        //将STALE_同步到 观察者的dependenciesState_
         if (d.dependenciesState_ === IDerivationState_.UP_TO_DATE_) {
             if (__DEV__ && d.isTracing_ !== TraceMode.NONE) {
                 logTraceInfo(d, observable)
@@ -202,6 +235,7 @@ export function propagateChanged(observable: IObservable) {
 // Called by ComputedValue when it recalculate and its value changed
 export function propagateChangeConfirmed(observable: IObservable) {
     // invariantLOS(observable, "confirmed start");
+
     if (observable.lowestObserverState_ === IDerivationState_.STALE_) return
     observable.lowestObserverState_ = IDerivationState_.STALE_
 

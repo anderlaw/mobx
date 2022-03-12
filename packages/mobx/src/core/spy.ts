@@ -7,7 +7,6 @@ import { Lambda, globalState, once, ISetDidChange, IMapDidChange } from "../inte
 export function isSpyEnabled() {
     return __DEV__ && !!globalState.spyListeners.length
 }
-
 export type PureSpyEvent =
     | { type: "action"; name: string; object: unknown; arguments: unknown[] }
     | { type: "scheduled-reaction"; name: string }
@@ -50,7 +49,9 @@ export function spy(listener: (change: SpyEvent) => void): Lambda {
         console.warn(`[mobx.spy] Is a no-op in production builds`)
         return function () {}
     } else {
+        //推入监听器 global.spyListeners.push(listener)
         globalState.spyListeners.push(listener)
+        //return unbind method: make sure will only filter at most once
         return once(() => {
             globalState.spyListeners = globalState.spyListeners.filter(l => l !== listener)
         })
